@@ -4,15 +4,12 @@ import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useThemeColor } from "@/hooks/use-theme-color";
-
-type Operacao = "+" | "-" | "*" | "/" | null;
-
-const parseDisplayNumero = (str: string): number => {
-  if (!str || typeof str !== "string") return 0;
-  const normalizado = str.trim().replace(/,/g, ".");
-  const num = parseFloat(normalizado);
-  return Number.isNaN(num) ? 0 : num;
-};
+import {
+  calcularInterno,
+  formatarResultado,
+  parseDisplayNumero,
+  type Operacao,
+} from "@/lib/calculator";
 
 export default function HomeScreen() {
   const [display, setDisplay] = useState("0");
@@ -47,32 +44,10 @@ export default function HomeScreen() {
     }
   }, []);
 
-  const formatarResultado = useCallback((valor: number): string => {
-    if (!Number.isFinite(valor)) return "Erro";
-    if (Number.isInteger(valor)) return String(valor);
-    const rounded = Math.round(valor * 1e12) / 1e12;
-    return String(rounded);
-  }, []);
-
   const limpar = useCallback(() => {
     setDisplay("0");
     setNumero1(null);
     setOperacao(null);
-  }, []);
-
-  const calcularInterno = useCallback((n1: number, n2: number, op: Operacao): number => {
-    switch (op) {
-      case "+":
-        return n1 + n2;
-      case "-":
-        return n1 - n2;
-      case "*":
-        return n1 * n2;
-      case "/":
-        return n2 === 0 ? NaN : n1 / n2;
-      default:
-        return n2;
-    }
   }, []);
 
   const apertarOperacao = useCallback(
@@ -99,7 +74,7 @@ export default function HomeScreen() {
         setDisplay("0");
       }
     },
-    [calcularInterno, formatarResultado, limpar]
+    [formatarResultado, limpar]
   );
 
   const calcular = useCallback(() => {
@@ -116,7 +91,7 @@ export default function HomeScreen() {
     setNumero1(null);
     setOperacao(null);
     stateRef.current.replaceNext = true;
-  }, [calcularInterno, formatarResultado]);
+  }, [formatarResultado]);
 
   const raizQuadrada = useCallback(() => {
     const { display } = stateRef.current;
