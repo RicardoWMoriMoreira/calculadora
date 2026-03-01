@@ -1,33 +1,38 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Platform, Pressable, StyleSheet, View } from "react-native";
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { useThemeColor } from '@/hooks/use-theme-color';
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { useThemeColor } from "@/hooks/use-theme-color";
 
-type Operacao = '+' | '-' | '*' | '/' | null;
+type Operacao = "+" | "-" | "*" | "/" | null;
 
 export default function HomeScreen() {
-  const [display, setDisplay] = useState('0');
+  const [display, setDisplay] = useState("0");
   const [numero1, setNumero1] = useState<string | null>(null);
   const [operacao, setOperacao] = useState<Operacao>(null);
 
   const stateRef = useRef({ display, numero1, operacao, replaceNext: false });
-  stateRef.current = { display, numero1, operacao, replaceNext: stateRef.current.replaceNext };
+  stateRef.current = {
+    display,
+    numero1,
+    operacao,
+    replaceNext: stateRef.current.replaceNext,
+  };
 
-  const backgroundColor = useThemeColor({}, 'background');
-  const textColor = useThemeColor({}, 'text');
+  const backgroundColor = useThemeColor({}, "background");
+  const textColor = useThemeColor({}, "text");
 
   const apertarNumero = useCallback((valor: string) => {
     const { display, replaceNext } = stateRef.current;
     if (replaceNext) {
       stateRef.current.replaceNext = false;
-      setDisplay(valor === '.' ? '0.' : valor);
+      setDisplay(valor === "." ? "0." : valor);
       return;
     }
-    if (display === '0' && valor !== '.') {
+    if (display === "0" && valor !== ".") {
       setDisplay(valor);
-    } else if (valor === '.' && display.includes('.')) {
+    } else if (valor === "." && display.includes(".")) {
       return;
     } else {
       setDisplay(display + valor);
@@ -38,7 +43,7 @@ export default function HomeScreen() {
     const { display } = stateRef.current;
     setNumero1(display);
     setOperacao(op);
-    setDisplay('0');
+    setDisplay("0");
   }, []);
 
   const calcular = useCallback(() => {
@@ -50,16 +55,16 @@ export default function HomeScreen() {
 
     let resultado: number;
     switch (operacao) {
-      case '+':
+      case "+":
         resultado = n1 + n2;
         break;
-      case '-':
+      case "-":
         resultado = n1 - n2;
         break;
-      case '*':
+      case "*":
         resultado = n1 * n2;
         break;
-      case '/':
+      case "/":
         resultado = n2 === 0 ? 0 : n1 / n2;
         break;
       default:
@@ -73,56 +78,75 @@ export default function HomeScreen() {
   }, []);
 
   const limpar = useCallback(() => {
-    setDisplay('0');
+    setDisplay("0");
     setNumero1(null);
     setOperacao(null);
   }, []);
 
+  const raizQuadrada = useCallback(() => {
+    const { display } = stateRef.current;
+    const valor = parseFloat(display);
+    if (valor < 0) {
+      setDisplay("Erro");
+      stateRef.current.replaceNext = true;
+      return;
+    }
+    const resultado = Math.sqrt(valor);
+    setDisplay(String(resultado));
+    stateRef.current.replaceNext = true;
+  }, []);
+
   useEffect(() => {
-    if (Platform.OS !== 'web') return;
+    if (Platform.OS !== "web") return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const key = e.key;
       if (/[0-9]/.test(key)) {
         apertarNumero(key);
-      } else if (key === '.') {
-        apertarNumero('.');
-      } else if (key === '+') {
-        apertarOperacao('+');
-      } else if (key === '-') {
-        apertarOperacao('-');
-      } else if (key === '*') {
-        apertarOperacao('*');
-      } else if (key === '/') {
-        apertarOperacao('/');
-      } else if (key === 'Enter' || key === '=') {
+      } else if (key === ".") {
+        apertarNumero(".");
+      } else if (key === "+") {
+        apertarOperacao("+");
+      } else if (key === "-") {
+        apertarOperacao("-");
+      } else if (key === "*") {
+        apertarOperacao("*");
+      } else if (key === "/") {
+        apertarOperacao("/");
+      } else if (key === "Enter" || key === "=") {
         e.preventDefault();
         calcular();
-      } else if (key === 'c' || key === 'C' || key === 'Escape' || key === 'Backspace') {
+      } else if (
+        key === "c" ||
+        key === "C" ||
+        key === "Escape" ||
+        key === "Backspace"
+      ) {
         e.preventDefault();
         limpar();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [apertarNumero, apertarOperacao, calcular, limpar]);
 
   const renderBotao = (
     label: string,
     onPress: () => void,
-    variant: 'number' | 'operator' | 'clear' | 'decimal'
+    variant: "number" | "operator" | "clear" | "decimal" | "unary",
   ) => (
     <Pressable
       key={label}
       style={({ pressed }) => [
         styles.botao,
-        variant === 'operator' && styles.botaoOp,
-        variant === 'clear' && styles.botaoClear,
-        variant === 'decimal' && styles.botaoDecimal,
+        (variant === "operator" || variant === "unary") && styles.botaoOp,
+        variant === "clear" && styles.botaoClear,
+        variant === "decimal" && styles.botaoDecimal,
         pressed && styles.botaoPressed,
       ]}
-      onPress={onPress}>
+      onPress={onPress}
+    >
       <ThemedText style={styles.botaoTexto}>{label}</ThemedText>
     </Pressable>
   );
@@ -130,37 +154,44 @@ export default function HomeScreen() {
   return (
     <ThemedView style={[styles.container, { backgroundColor }]}>
       <View style={styles.display}>
-        <ThemedText style={[styles.displayText, { color: textColor }]} numberOfLines={1}>
+        <ThemedText
+          style={[styles.displayText, { color: textColor }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit={true}
+        >
           {display}
         </ThemedText>
       </View>
       <View style={styles.teclado}>
-        <View style={styles.linha}>
-          {renderBotao('C', limpar, 'clear')}
-          {renderBotao('/', () => apertarOperacao('/'), 'operator')}
-          {renderBotao('*', () => apertarOperacao('*'), 'operator')}
-          {renderBotao('-', () => apertarOperacao('-'), 'operator')}
+        <View style={styles.linhaRaiz}>
+          {renderBotao("√", raizQuadrada, "unary")}
         </View>
         <View style={styles.linha}>
-          {renderBotao('7', () => apertarNumero('7'), 'number')}
-          {renderBotao('8', () => apertarNumero('8'), 'number')}
-          {renderBotao('9', () => apertarNumero('9'), 'number')}
-          {renderBotao('+', () => apertarOperacao('+'), 'operator')}
+          {renderBotao("C", limpar, "clear")}
+          {renderBotao("/", () => apertarOperacao("/"), "operator")}
+          {renderBotao("*", () => apertarOperacao("*"), "operator")}
+          {renderBotao("-", () => apertarOperacao("-"), "operator")}
         </View>
         <View style={styles.linha}>
-          {renderBotao('4', () => apertarNumero('4'), 'number')}
-          {renderBotao('5', () => apertarNumero('5'), 'number')}
-          {renderBotao('6', () => apertarNumero('6'), 'number')}
-          {renderBotao('=', calcular, 'operator')}
+          {renderBotao("7", () => apertarNumero("7"), "number")}
+          {renderBotao("8", () => apertarNumero("8"), "number")}
+          {renderBotao("9", () => apertarNumero("9"), "number")}
+          {renderBotao("+", () => apertarOperacao("+"), "operator")}
         </View>
         <View style={styles.linha}>
-          {renderBotao('1', () => apertarNumero('1'), 'number')}
-          {renderBotao('2', () => apertarNumero('2'), 'number')}
-          {renderBotao('3', () => apertarNumero('3'), 'number')}
-          {renderBotao('0', () => apertarNumero('0'), 'number')}
+          {renderBotao("4", () => apertarNumero("4"), "number")}
+          {renderBotao("5", () => apertarNumero("5"), "number")}
+          {renderBotao("6", () => apertarNumero("6"), "number")}
+          {renderBotao("=", calcular, "operator")}
+        </View>
+        <View style={styles.linha}>
+          {renderBotao("1", () => apertarNumero("1"), "number")}
+          {renderBotao("2", () => apertarNumero("2"), "number")}
+          {renderBotao("3", () => apertarNumero("3"), "number")}
+          {renderBotao("0", () => apertarNumero("0"), "number")}
         </View>
         <View style={styles.linhaDecimal}>
-          {renderBotao('.', () => apertarNumero('.'), 'decimal')}
+          {renderBotao(".", () => apertarNumero("."), "decimal")}
         </View>
       </View>
     </ThemedView>
@@ -169,50 +200,62 @@ export default function HomeScreen() {
 
 const BOTAO_SIZE = 72;
 const GAP = 12;
-const COR_NUMERO = '#34495E';
-const COR_OPERADOR = '#1ABC9C';
-const COR_CLEAR = '#B03A2E';
+const LARGURA_TECLADO = BOTAO_SIZE * 4 + GAP * 3;
+const COR_NUMERO = "#34495E";
+const COR_OPERADOR = "#1ABC9C";
+const COR_CLEAR = "#B03A2E";
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    justifyContent: 'flex-end',
+    justifyContent: "flex-end",
+    alignItems: "center",
   },
   display: {
+    width: LARGURA_TECLADO,
     marginBottom: 28,
     paddingHorizontal: 20,
     paddingVertical: 24,
-    alignItems: 'flex-end',
-    justifyContent: 'flex-end',
+    alignItems: "flex-end",
+    justifyContent: "flex-end",
     minHeight: 100,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
     borderRadius: 12,
+    borderWidth: 4,
+    borderColor: "#ffffff",
   },
   displayText: {
     fontSize: 48,
-    fontWeight: '300',
-    fontFamily: 'monospace',
-    color: '#fff',
+    lineHeight: 64,
+    fontWeight: "300",
+    fontFamily: "monospace",
+    color: "#fff",
+    alignSelf: "stretch",
+    textAlign: "right",
   },
   teclado: {
     gap: GAP,
-    alignItems: 'center',
+    alignItems: "center",
   },
   linha: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: GAP,
   },
+  linhaRaiz: {
+    flexDirection: "row",
+    justifyContent: "center",
+  },
   linhaDecimal: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     width: BOTAO_SIZE * 2 + GAP,
   },
   botao: {
     width: BOTAO_SIZE,
     height: BOTAO_SIZE,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderRadius: 16,
     backgroundColor: COR_NUMERO,
   },
@@ -232,7 +275,7 @@ const styles = StyleSheet.create({
   },
   botaoTexto: {
     fontSize: 26,
-    fontWeight: '600',
-    color: '#fff',
+    fontWeight: "600",
+    color: "#fff",
   },
 });
