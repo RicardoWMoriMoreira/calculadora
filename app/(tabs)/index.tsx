@@ -7,6 +7,13 @@ import { useThemeColor } from "@/hooks/use-theme-color";
 
 type Operacao = "+" | "-" | "*" | "/" | null;
 
+const parseDisplayNumero = (str: string): number => {
+  if (!str || typeof str !== "string") return 0;
+  const normalizado = str.trim().replace(/,/g, ".");
+  const num = parseFloat(normalizado);
+  return Number.isNaN(num) ? 0 : num;
+};
+
 export default function HomeScreen() {
   const [display, setDisplay] = useState("0");
   const [numero1, setNumero1] = useState<string | null>(null);
@@ -25,7 +32,8 @@ export default function HomeScreen() {
 
   const apertarNumero = useCallback((valor: string) => {
     const { display, replaceNext } = stateRef.current;
-    if (replaceNext) {
+    const deveSubstituir = replaceNext || display === "Erro" || display === "NaN";
+    if (deveSubstituir) {
       stateRef.current.replaceNext = false;
       setDisplay(valor === "." ? "0." : valor);
       return;
@@ -39,42 +47,11 @@ export default function HomeScreen() {
     }
   }, []);
 
-  const apertarOperacao = useCallback((op: Operacao) => {
-    const { display } = stateRef.current;
-    setNumero1(display);
-    setOperacao(op);
-    setDisplay("0");
-  }, []);
-
-  const calcular = useCallback(() => {
-    const { display, numero1, operacao } = stateRef.current;
-    if (numero1 === null || operacao === null) return;
-
-    const n1 = parseFloat(numero1);
-    const n2 = parseFloat(display);
-
-    let resultado: number;
-    switch (operacao) {
-      case "+":
-        resultado = n1 + n2;
-        break;
-      case "-":
-        resultado = n1 - n2;
-        break;
-      case "*":
-        resultado = n1 * n2;
-        break;
-      case "/":
-        resultado = n2 === 0 ? 0 : n1 / n2;
-        break;
-      default:
-        return;
-    }
-
-    setDisplay(String(resultado));
-    setNumero1(null);
-    setOperacao(null);
-    stateRef.current.replaceNext = true;
+  const formatarResultado = useCallback((valor: number): string => {
+    if (!Number.isFinite(valor)) return "Erro";
+    if (Number.isInteger(valor)) return String(valor);
+    const rounded = Math.round(valor * 1e12) / 1e12;
+    return String(rounded);
   }, []);
 
   const limpar = useCallback(() => {
@@ -83,18 +60,77 @@ export default function HomeScreen() {
     setOperacao(null);
   }, []);
 
+  const calcularInterno = useCallback((n1: number, n2: number, op: Operacao): number => {
+    switch (op) {
+      case "+":
+        return n1 + n2;
+      case "-":
+        return n1 - n2;
+      case "*":
+        return n1 * n2;
+      case "/":
+        return n2 === 0 ? NaN : n1 / n2;
+      default:
+        return n2;
+    }
+  }, []);
+
+  const apertarOperacao = useCallback(
+    (op: Operacao) => {
+      const { display, numero1, operacao } = stateRef.current;
+
+      if (display === "Erro" || display === "NaN") {
+        limpar();
+        return;
+      }
+
+      if (numero1 !== null && operacao !== null) {
+        const n1 = parseDisplayNumero(numero1);
+        const n2 = parseDisplayNumero(display);
+        const resultado = calcularInterno(n1, n2, operacao);
+        const resultadoStr = formatarResultado(resultado);
+        setDisplay(resultadoStr);
+        setNumero1(resultadoStr);
+        setOperacao(op);
+        stateRef.current.replaceNext = true;
+      } else {
+        setNumero1(display);
+        setOperacao(op);
+        setDisplay("0");
+      }
+    },
+    [calcularInterno, formatarResultado, limpar]
+  );
+
+  const calcular = useCallback(() => {
+    const { display, numero1, operacao } = stateRef.current;
+    if (numero1 === null || operacao === null) return;
+    if (display === "Erro" || display === "NaN") return;
+
+    const n1 = parseDisplayNumero(numero1);
+    const n2 = parseDisplayNumero(display);
+    const resultado = calcularInterno(n1, n2, operacao);
+    const resultadoStr = formatarResultado(resultado);
+
+    setDisplay(resultadoStr);
+    setNumero1(null);
+    setOperacao(null);
+    stateRef.current.replaceNext = true;
+  }, [calcularInterno, formatarResultado]);
+
   const raizQuadrada = useCallback(() => {
     const { display } = stateRef.current;
-    const valor = parseFloat(display);
-    if (valor < 0) {
+    if (display === "Erro" || display === "NaN") return;
+    const valor = parseDisplayNumero(display);
+    if (valor < 0 || isNaN(valor)) {
       setDisplay("Erro");
       stateRef.current.replaceNext = true;
       return;
     }
     const resultado = Math.sqrt(valor);
-    setDisplay(String(resultado));
+    setDisplay(formatarResultado(resultado));
     stateRef.current.replaceNext = true;
-  }, []);
+  }, [formatarResultado]);
 
   useEffect(() => {
     if (Platform.OS !== "web") return;
@@ -103,7 +139,7 @@ export default function HomeScreen() {
       const key = e.key;
       if (/[0-9]/.test(key)) {
         apertarNumero(key);
-      } else if (key === ".") {
+      } else if (key === "." || key === ",") {
         apertarNumero(".");
       } else if (key === "+") {
         apertarOperacao("+");
@@ -163,9 +199,6 @@ export default function HomeScreen() {
         </ThemedText>
       </View>
       <View style={styles.teclado}>
-        <View style={styles.linhaRaiz}>
-          {renderBotao("√", raizQuadrada, "unary")}
-        </View>
         <View style={styles.linha}>
           {renderBotao("C", limpar, "clear")}
           {renderBotao("/", () => apertarOperacao("/"), "operator")}
@@ -188,9 +221,10 @@ export default function HomeScreen() {
           {renderBotao("1", () => apertarNumero("1"), "number")}
           {renderBotao("2", () => apertarNumero("2"), "number")}
           {renderBotao("3", () => apertarNumero("3"), "number")}
-          {renderBotao("0", () => apertarNumero("0"), "number")}
+          {renderBotao("√", raizQuadrada, "unary")}
         </View>
         <View style={styles.linhaDecimal}>
+          {renderBotao("0", () => apertarNumero("0"), "number")}
           {renderBotao(".", () => apertarNumero("."), "decimal")}
         </View>
       </View>
@@ -242,14 +276,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: GAP,
   },
-  linhaRaiz: {
-    flexDirection: "row",
-    justifyContent: "center",
-  },
   linhaDecimal: {
     flexDirection: "row",
-    justifyContent: "center",
-    width: BOTAO_SIZE * 2 + GAP,
+    width: LARGURA_TECLADO,
+    gap: GAP,
+  },
+  botaoDecimal: {
+    width: LARGURA_TECLADO - BOTAO_SIZE - GAP,
+    height: BOTAO_SIZE,
+    backgroundColor: COR_NUMERO,
   },
   botao: {
     width: BOTAO_SIZE,
@@ -264,11 +299,6 @@ const styles = StyleSheet.create({
   },
   botaoClear: {
     backgroundColor: COR_CLEAR,
-  },
-  botaoDecimal: {
-    width: BOTAO_SIZE * 2 + GAP,
-    height: BOTAO_SIZE,
-    backgroundColor: COR_NUMERO,
   },
   botaoPressed: {
     opacity: 0.8,
