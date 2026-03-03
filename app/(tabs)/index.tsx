@@ -75,7 +75,7 @@ export default function HomeScreen() {
         setDisplay("0");
       }
     },
-    [formatarResultado, limpar],
+    [limpar],
   );
 
   const calcular = useCallback(() => {
@@ -92,7 +92,7 @@ export default function HomeScreen() {
     setNumero1(null);
     setOperacao(null);
     stateRef.current.replaceNext = true;
-  }, [formatarResultado]);
+  }, []);
 
   const raizQuadrada = useCallback(() => {
     const { display } = stateRef.current;
@@ -106,7 +106,7 @@ export default function HomeScreen() {
     const resultado = Math.sqrt(valor);
     setDisplay(formatarResultado(resultado));
     stateRef.current.replaceNext = true;
-  }, [formatarResultado]);
+  }, []);
 
   useEffect(() => {
     if (Platform.OS !== "web") return;
@@ -199,7 +199,7 @@ export default function HomeScreen() {
           {renderBotao("3", () => apertarNumero("3"), "number")}
           {renderBotao("+", () => apertarOperacao("+"), "unary")}
         </View>
-        <View style={styles.linhaDecimal}>
+        <View style={styles.linhaBotaoIgual}>
           {renderBotao("0", () => apertarNumero("0"), "number")}
           {renderBotao("=", calcular, "decimal")}
         </View>
@@ -209,7 +209,7 @@ export default function HomeScreen() {
 }
 
 const BOTAO_SIZE = 72;
-const GAP = 12;
+const GAP = 15;
 const LARGURA_TECLADO = BOTAO_SIZE * 4 + GAP * 3;
 const COR_NUMERO = "#34495E";
 const COR_OPERADOR = "#1ABC9C";
@@ -218,7 +218,7 @@ const COR_CLEAR = "#B03A2E";
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: 10,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -252,13 +252,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: GAP,
   },
-  linhaDecimal: {
+  linhaBotaoIgual: {
     flexDirection: "row",
     width: LARGURA_TECLADO,
     gap: GAP,
   },
   botaoDecimal: {
-    width: LARGURA_TECLADO - BOTAO_SIZE - GAP,
+    width: BOTAO_SIZE * 3 + GAP * 2,
     height: BOTAO_SIZE,
     backgroundColor: COR_NUMERO,
   },
