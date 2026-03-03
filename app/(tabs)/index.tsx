@@ -29,7 +29,8 @@ export default function HomeScreen() {
 
   const apertarNumero = useCallback((valor: string) => {
     const { display, replaceNext } = stateRef.current;
-    const deveSubstituir = replaceNext || display === "Erro" || display === "NaN";
+    const deveSubstituir =
+      replaceNext || display === "Erro" || display === "NaN";
     if (deveSubstituir) {
       stateRef.current.replaceNext = false;
       setDisplay(valor === "." ? "0." : valor);
@@ -74,7 +75,7 @@ export default function HomeScreen() {
         setDisplay("0");
       }
     },
-    [formatarResultado, limpar]
+    [formatarResultado, limpar],
   );
 
   const calcular = useCallback(() => {
@@ -176,31 +177,31 @@ export default function HomeScreen() {
       <View style={styles.teclado}>
         <View style={styles.linha}>
           {renderBotao("C", limpar, "clear")}
+          {renderBotao("√", raizQuadrada, "operator")}
+          {renderBotao(".", () => apertarNumero("."), "operator")}
           {renderBotao("/", () => apertarOperacao("/"), "operator")}
-          {renderBotao("*", () => apertarOperacao("*"), "operator")}
-          {renderBotao("-", () => apertarOperacao("-"), "operator")}
         </View>
         <View style={styles.linha}>
           {renderBotao("7", () => apertarNumero("7"), "number")}
           {renderBotao("8", () => apertarNumero("8"), "number")}
           {renderBotao("9", () => apertarNumero("9"), "number")}
-          {renderBotao("+", () => apertarOperacao("+"), "operator")}
+          {renderBotao("-", () => apertarOperacao("-"), "operator")}
         </View>
         <View style={styles.linha}>
           {renderBotao("4", () => apertarNumero("4"), "number")}
           {renderBotao("5", () => apertarNumero("5"), "number")}
           {renderBotao("6", () => apertarNumero("6"), "number")}
-          {renderBotao("=", calcular, "operator")}
+          {renderBotao("*", () => apertarOperacao("*"), "operator")}
         </View>
         <View style={styles.linha}>
           {renderBotao("1", () => apertarNumero("1"), "number")}
           {renderBotao("2", () => apertarNumero("2"), "number")}
           {renderBotao("3", () => apertarNumero("3"), "number")}
-          {renderBotao("√", raizQuadrada, "unary")}
+          {renderBotao("+", () => apertarOperacao("+"), "unary")}
         </View>
         <View style={styles.linhaDecimal}>
           {renderBotao("0", () => apertarNumero("0"), "number")}
-          {renderBotao(".", () => apertarNumero("."), "decimal")}
+          {renderBotao("=", calcular, "decimal")}
         </View>
       </View>
     </ThemedView>
@@ -218,7 +219,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    justifyContent: "flex-end",
+    justifyContent: "center",
     alignItems: "center",
   },
   display: {
